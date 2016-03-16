@@ -42,7 +42,7 @@ while getopts "hc:b:" opt
 do
   case "$opt" in
     "h") usage; exit 0 ;;
-    "c") COLORSCHEME="-c "":colorscheme $OPTARG""" ;;
+    "c") COLORSCHEME="-c \":colorscheme $OPTARG\"" ;;
     "b") BAR="$OPTARG" ;;
     "?") usage >&2; exit 1 ;;
     ":") error "Option -$OPTARG requires an argument.";;
@@ -50,7 +50,7 @@ do
 done
 shift $(expr $OPTIND - 1) # remove options from positional parameters
 
-ARGDOCOMMAND='-c '':argdo set eventignore-=Syntax | if &filetype != "" | TOhtml | endif | wq'' -c "wqa"'
+#ARGDOCOMMAND="-c ':argdo set eventignore-=Syntax | if &filetype != \"\" | TOhtml | endif | wq' -c 'wqa'"
 
 ARGS=$@
 
@@ -63,4 +63,28 @@ fi
 
 echo "Rest of the args were: $ARGS"
 
-vim "$COLORSCHEME" -c ":argdo set eventignore-=Syntax | if &filetype != \"\" | TOhtml | endif | wq" -c "wqa" "$ARGS"
+##echo "$COLORSCHEME" -c "\":argdo set eventignore-=Syntax | if &filetype != \"\" | TOhtml | endif | wq' -c 'wqa'\"" "$ARGS"
+#vim "$COLORSCHEME" -c ":argdo set eventignore-=Syntax | if &filetype != \"\" | TOhtml | endif | wq" -c "wqa" $ARGS
+
+## Try to handle directories properly
+##vim "$COLORSCHEME" -c ":argdo set eventignore-=Syntax | if &filetype == \"netrw\" | TOhtml | w %:t/testing.html | else | if &filetype != \"\" | TOhtml | endif | endif | wq" -c "wqa" $ARGS
+
+
+for f in $ARGS
+do
+  if [ -d "$f" ]
+  then
+    cd "$f"
+    OUTPUTDIR=$(pwd)_TOhtml
+    echo "mkdir $OUTPUTDIR"
+    mkdir "$OUTPUTDIR"
+
+    FILES=$(ls -p $f | grep -v /)
+    vim "$COLORSCHEME" -c ":argdo set eventignore-=Syntax | if &filetype != \"\" | TOhtml | endif | w $OUTPUTDIR/%:t | q" -c "qa!" $FILES
+
+  elif [ -f "$f" ]
+  then
+    OUTPUTDIR=$(pwd)
+    vim "$COLORSCHEME" -c ":argdo set eventignore-=Syntax | if &filetype != \"\" | TOhtml | endif | w $OUTPUTDIR/%:t | q" -c "qa!" "$f"
+  fi
+done
