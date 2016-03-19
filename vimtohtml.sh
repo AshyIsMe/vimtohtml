@@ -1,8 +1,4 @@
 #!/bin/bash
-
-# AA TODO: currently this in an alias so you have to source this script or put it in your .bashrc
-#alias vimtohtml='vim -c ":argdo set eventignore-=Syntax | if &filetype != \"\" | TOhtml | endif | wq" -c "wqa"'
-
 set -e
 
 ## Render a whole directory out to HTML with vim's :TOhtml command
@@ -54,6 +50,8 @@ if [[ -n "$COLORSCHEME" ]]; then
 fi
 echo "Rest of the args were: $ARGS"
 
+RESETTERM=false
+
 for f in $ARGS
 do
   if [[ -d "$f" ]]; then
@@ -62,10 +60,12 @@ do
     mkdir "../$OUTPUTDIR"
     cd -
 
-    #AA TODO: Worry about directory index.html files later
+    #AA TODO: Open the directories themselves and render out the netrw filetypes.
     find "$f" -type d -not -path "*/.*" | cpio -pdumv "$OUTPUTDIR"  # Clone the directory heirarchy without files
     #Open files in vim and call :TOhtml
-    find "$f" -type f -not -path "*/.*" -print0 | xargs -0 -o vim "$COLORSCHEME" -c ":argdo set eventignore-=Syntax | if &filetype != \"\" && &filetype != \"netrw\"| TOhtml | endif | w $OUTPUTDIR/%:. | q" -c "qa!"
+    find "$f" -type f -not -path "*/.*" -print0 | xargs -0 -o -n 5 -P 8 vim "$COLORSCHEME" -c ":argdo set eventignore-=Syntax | if &filetype != \"\" && &filetype != \"netrw\"| silent TOhtml | endif | w $OUTPUTDIR/%:. | q" -c "qa!"
+
+    RESETTERM=true
 
   elif [[ -f "$f" ]]; then
 
@@ -74,3 +74,7 @@ do
   fi
 done
 
+# Running vim in parallel screws up the terminal so reset it
+if $RESETTERM; then
+  reset
+fi
