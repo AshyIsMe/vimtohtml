@@ -10,7 +10,6 @@ set -e
 ##
 ##       [-h     | --help]     Print this help message
 ##       [-c colorscheme | --colorscheme colorscheme]  Use the specified colourscheme
-##       [-b arg | --bar arg]  Bars the baz
 
 BASE=$(cd $(dirname $0); pwd -P)
 
@@ -32,59 +31,46 @@ for arg in "$@"; do
   case "$arg" in
     "--help") set -- "$@" "-h" ;;
     "--colorscheme")  set -- "$@" "-c" ;;
-    "--bar")  set -- "$@" "-b" ;;
     *)        set -- "$@" "$arg"
   esac
 done
 # Parse short options
 OPTIND=1
-while getopts "hc:b:" opt
+while getopts "hc:" opt
 do
   case "$opt" in
     "h") usage; exit 0 ;;
     "c") COLORSCHEME="-c \":colorscheme $OPTARG\"" ;;
-    "b") BAR="$OPTARG" ;;
     "?") usage >&2; exit 1 ;;
     ":") error "Option -$OPTARG requires an argument.";;
   esac
 done
 shift $(expr $OPTIND - 1) # remove options from positional parameters
 
-#ARGDOCOMMAND="-c ':argdo set eventignore-=Syntax | if &filetype != \"\" | TOhtml | endif | wq' -c 'wqa'"
-
 ARGS=$@
 
 if [[ -n "$COLORSCHEME" ]]; then
    echo "COLORSCHEME: $COLORSCHEME"
 fi
-if [[ -n "$BAR" ]]; then
-   echo "BAR: $BAR"
-fi
-
 echo "Rest of the args were: $ARGS"
-
-##echo "$COLORSCHEME" -c "\":argdo set eventignore-=Syntax | if &filetype != \"\" | TOhtml | endif | wq' -c 'wqa'\"" "$ARGS"
-#vim "$COLORSCHEME" -c ":argdo set eventignore-=Syntax | if &filetype != \"\" | TOhtml | endif | wq" -c "wqa" $ARGS
-
-## Try to handle directories properly
-##vim "$COLORSCHEME" -c ":argdo set eventignore-=Syntax | if &filetype == \"netrw\" | TOhtml | w %:t/testing.html | else | if &filetype != \"\" | TOhtml | endif | endif | wq" -c "wqa" $ARGS
-
 
 for f in $ARGS
 do
-  if [ -d "$f" ]
-  then
+  if [[ -d "$f" ]]; then
     cd "$f"
-    OUTPUTDIR=$(pwd)_TOhtml
-    echo "mkdir $OUTPUTDIR"
-    mkdir "$OUTPUTDIR"
+    OUTPUTDIR=${PWD##*/}_TOhtml
+    mkdir "../$OUTPUTDIR"
+    cd -
 
-    FILES=$(ls -p $f | grep -v /)
-    vim "$COLORSCHEME" -c ":argdo set eventignore-=Syntax | if &filetype != \"\" | TOhtml | endif | w $OUTPUTDIR/%:t | q" -c "qa!" $FILES
+    #AA TODO: Worry about directory index.html files later
+    find "$f" -type d -not -path "*/.*" | cpio -pdumv "$OUTPUTDIR"  # Clone the directory heirarchy without files
+    #Open files in vim and call :TOhtml
+    find "$f" -type f -not -path "*/.*" -print0 | xargs -0 -o vim "$COLORSCHEME" -c ":argdo set eventignore-=Syntax | if &filetype != \"\" && &filetype != \"netrw\"| TOhtml | endif | w $OUTPUTDIR/%:. | q" -c "qa!"
 
-  elif [ -f "$f" ]
-  then
+  elif [[ -f "$f" ]]; then
+
     OUTPUTDIR=$(pwd)
     vim "$COLORSCHEME" -c ":argdo set eventignore-=Syntax | if &filetype != \"\" | TOhtml | endif | w $OUTPUTDIR/%:t | q" -c "qa!" "$f"
   fi
 done
+

@@ -10,25 +10,8 @@ Hence this little tool.
 
 ## Usage
 ```
-$ cd src
-$ vimtohtml *.c
+$ git clone https://github.com/antirez/redis    #Grab a sweet codebase to read
+$ vimtohtml redis
 
-$ open *.html
-```
-
-
-# TODO
-
-## Intended Usage
-```
-# Grab a sweet codebase to read
-$ git clone https://github.com/antirez/redis
-$ cd redis
-
-# Run vimtohtml in the directory and wait for it to finish
-$ vimtohtml .
-
-# Now open the index in your favourite browser and browse away with your favourite vim colorscheme embedded!
-$ open index.html
-
+$ find redis_TOhtml   #All files have been rendered to html with vim's syntax highlighting
 ```
