@@ -43,16 +43,16 @@ do
 done
 shift $(expr $OPTIND - 1) # remove options from positional parameters
 
-ARGS=$@
+ARGS=("$@")
 
 if [[ -n "$COLORSCHEME" ]]; then
    echo "COLORSCHEME: $COLORSCHEME"
 fi
-echo "Rest of the args were: $ARGS"
+echo "Rest of the args were:" "${ARGS[@]}"
 
 RESETTERM=false
 
-for f in $ARGS
+for f in "${ARGS[@]}"
 do
   if [[ -d "$f" ]]; then
     cd "$f"
