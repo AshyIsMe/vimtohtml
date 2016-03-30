@@ -15,3 +15,7 @@ $ vimtohtml redis
 
 $ find redis_TOhtml   #All files have been rendered to html with vim's syntax highlighting
 ```
+
+## TODO
+* Render an index.html page for each directory with clickable file links
+* Add a dropbox option or something similar?

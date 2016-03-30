@@ -67,7 +67,7 @@ do
     #AA TODO: Open the directories themselves and render out the netrw filetypes.
     #AA TODO: fix up the filename saving section
     #This should work if b:netrw_curdir is working.  Maybe it isn't?
-    find "$f" -type d -not -path "*/.*" -print0 | xargs -0 -o -n 5 -P 8 vim "$COLORSCHEME" -c ":argdo set eventignore-=Syntax | if &filetype == \"netrw\"| let fname = \"$OUTPUTDIR/\" . fnamemodify(b:netrw_curdir,\"%:.\") . \"/index.html\" | silent TOhtml | execute \"write\" fname | endif |  q" -c "qa!"
+    #find "$f" -type d -not -path "*/.*" -print0 | xargs -0 -o -n 5 -P 8 vim "$COLORSCHEME" -c ":argdo set eventignore-=Syntax | if &filetype == \"netrw\"| let fname = \"$OUTPUTDIR/\" . fnamemodify(b:netrw_curdir,\"%:.\") . \"/index.html\" | silent TOhtml | execute \"write\" fname | endif |  q" -c "qa!"
 
     RESETTERM=true
 
