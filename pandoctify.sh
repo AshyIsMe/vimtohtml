@@ -19,6 +19,8 @@ error() {
    exit 1
 }
 
+#AA TODO: Need a hashmap of file extensions to language types
+
 # Takes a filepath as an argument.
 # Read from filepath and surround with markdown code block syntax including pandoc 
 # language specification and output to stdout
@@ -32,6 +34,7 @@ tomarkdown() {
   extension="${filename##*.}"
   filename="${filename%.*}"
 
+  #AA TODO: Finish this function
 }
 
 [[ $# == 0 ]] && usage
