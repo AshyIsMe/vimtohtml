@@ -19,6 +19,21 @@ error() {
    exit 1
 }
 
+# Takes a filepath as an argument.
+# Read from filepath and surround with markdown code block syntax including pandoc 
+# language specification and output to stdout
+# eg: tomarkdown somefile.c
+# => ``` {.c}
+#    #include <stdlib.h>
+#    ...
+#    ```
+tomarkdown() {
+  filename=$(basename "$1")
+  extension="${filename##*.}"
+  filename="${filename%.*}"
+
+}
+
 [[ $# == 0 ]] && usage
 
 # Transform long options to short ones
@@ -36,7 +51,7 @@ while getopts "hc:" opt
 do
   case "$opt" in
     "h") usage; exit 0 ;;
-    "c") COLORSCHEME="-c \":colorscheme $OPTARG\"" ;;
+    "c") COLORSCHEME="--highlight-style $OPTARG" ;;
     "?") usage >&2; exit 1 ;;
     ":") error "Option -$OPTARG requires an argument.";;
   esac
@@ -50,8 +65,6 @@ if [[ -n "$COLORSCHEME" ]]; then
 fi
 echo "Rest of the args were:" "${ARGS[@]}"
 
-RESETTERM=false
-
 for f in "${ARGS[@]}"
 do
   if [[ -d "$f" ]]; then
@@ -61,15 +74,15 @@ do
     cd -
 
     find "$f" -type d -not -path "*/.*" | cpio -pdumv "$OUTPUTDIR"  # Clone the directory heirarchy without files
+
     #Open files in vim and call :TOhtml
-    find "$f" -type f -not -path "*/.*" -print0 | xargs -0 -o -n 5 -P 8 vim "$COLORSCHEME" -c ":argdo set eventignore-=Syntax | if &filetype != \"\" && &filetype != \"netrw\"| silent TOhtml | w $OUTPUTDIR/%:. | endif | q" -c "qa!"
+    #find "$f" -type f -not -path "*/.*" -print0 | xargs -0 -o -n 5 -P 8 vim "$COLORSCHEME" -c ":argdo set eventignore-=Syntax | if &filetype != \"\" && &filetype != \"netrw\"| silent TOhtml | w $OUTPUTDIR/%:. | endif | q" -c "qa!"
 
-    #AA TODO: Open the directories themselves and render out the netrw filetypes.
-    #AA TODO: fix up the filename saving section
-    #This should work if b:netrw_curdir is working.  Maybe it isn't?
-    #find "$f" -type d -not -path "*/.*" -print0 | xargs -0 -o -n 5 -P 8 vim "$COLORSCHEME" -c ":argdo set eventignore-=Syntax | if &filetype == \"netrw\"| let fname = \"$OUTPUTDIR/\" . fnamemodify(b:netrw_curdir,\"%:.\") . \"/index.html\" | silent TOhtml | execute \"write\" fname | endif |  q" -c "qa!"
 
-    RESETTERM=true
+    #AA TODO add in the markdown header and footer (``` {.language} ```)
+    find "$f" -type f -not -path "*/.*" -print0 | xargs -I sourcefile -0 -o pandoc -f markdown -s "$COLORSCHEME" -o sourcefile".html"
+
+    #AA TODO: Render some index pages
 
   elif [[ -f "$f" ]]; then
 
@@ -77,8 +90,3 @@ do
     vim "$COLORSCHEME" -c ":argdo set eventignore-=Syntax | if &filetype != \"\" | TOhtml | endif | w $OUTPUTDIR/%:t | q" -c "qa!" "$f"
   fi
 done
-
-# Running vim in parallel screws up the terminal so reset it
-if $RESETTERM; then
-  reset
-fi
