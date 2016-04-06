@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -e
 
 ## Render a whole directory out to HTML with vim's :TOhtml command
@@ -19,23 +19,6 @@ error() {
    exit 1
 }
 
-#AA TODO: Need a hashmap of file extensions to language types
-
-# Takes a filepath as an argument.
-# Read from filepath and surround with markdown code block syntax including pandoc 
-# language specification and output to stdout
-# eg: tomarkdown somefile.c
-# => ``` {.c}
-#    #include <stdlib.h>
-#    ...
-#    ```
-tomarkdown() {
-  filename=$(basename "$1")
-  extension="${filename##*.}"
-  filename="${filename%.*}"
-
-  #AA TODO: Finish this function
-}
 
 [[ $# == 0 ]] && usage
 
@@ -54,7 +37,7 @@ while getopts "hc:" opt
 do
   case "$opt" in
     "h") usage; exit 0 ;;
-    "c") COLORSCHEME="--highlight-style $OPTARG" ;;
+    "c") COLORSCHEME="--highlight-style=$OPTARG" ;;
     "?") usage >&2; exit 1 ;;
     ":") error "Option -$OPTARG requires an argument.";;
   esac
@@ -63,10 +46,68 @@ shift $(expr $OPTIND - 1) # remove options from positional parameters
 
 ARGS=("$@")
 
-if [[ -n "$COLORSCHEME" ]]; then
-   echo "COLORSCHEME: $COLORSCHEME"
-fi
-echo "Rest of the args were:" "${ARGS[@]}"
+#Hashmap of file extensions to language types supported by pandoc
+declare -A filetypes
+filetypes=(
+  ["ada"]="ada"
+  ["agda"]="agda"
+  ["c"]="c"
+  ["clj"]="clojure"
+  ["h"]="cpp"
+  ["cpp"]="cpp"
+  ["cs"]="csharp"
+  ["d"]="d"
+  ["ex"]="elixir"
+  ["exs"]="elixir"
+  ["f90"]="fortran"
+  ["f95"]="fortran"
+  ["f03"]="fortran"
+  ["go"]="go"
+  ["hs"]="haskell"
+  ["idr"]="idris"
+  ["java"]="java"
+  ["js"]="javascript"
+  ["jl"]="julia"
+  ["kt"]="kotlin"
+  ["lisp"]="lisp"
+  ["cl"]="lisp"
+  ["m"]="matlab"
+  ["mlx"]="matlab"
+  ["ml"]="ocaml"
+  ["mli"]="ocaml"
+  ["pl"]="perl"
+  ["php"]="php"
+  ["pro"]="prolog" # prolog also uses .pl.  Let's assume perl is more active in the wild...
+  ["py"]="python"
+  ["r"]="r"
+  ["rb"]="ruby"
+  ["scala"]="scala"
+  ["scm"]="scheme"
+  ["ss"]="scheme"
+  ["tcl"]="tcl"
+  ["lua"]="lua"
+)
+
+# Takes a filepath as an argument.
+# Read from filepath and surround with markdown code block syntax including pandoc
+# language specification and output to stdout
+# eg: tomarkdown somefile.c
+# => ``` {.c}
+#    #include <stdlib.h>
+#    ...
+#    ```
+tomarkdown() {
+  local filename=$(basename "$1")
+  local extension="${filename##*.}"
+  local filename="${filename%.*}"
+
+  local filetype="${filetypes["$extension"]}"
+
+  echo "\`\`\` {.$filetype}"
+  cat "$1"
+  echo "\`\`\`"
+}
+
 
 for f in "${ARGS[@]}"
 do
@@ -78,18 +119,17 @@ do
 
     find "$f" -type d -not -path "*/.*" | cpio -pdumv "$OUTPUTDIR"  # Clone the directory heirarchy without files
 
-    #Open files in vim and call :TOhtml
-    #find "$f" -type f -not -path "*/.*" -print0 | xargs -0 -o -n 5 -P 8 vim "$COLORSCHEME" -c ":argdo set eventignore-=Syntax | if &filetype != \"\" && &filetype != \"netrw\"| silent TOhtml | w $OUTPUTDIR/%:. | endif | q" -c "qa!"
-
-
-    #AA TODO add in the markdown header and footer (``` {.language} ```)
-    find "$f" -type f -not -path "*/.*" -print0 | xargs -I sourcefile -0 -o pandoc -f markdown -s "$COLORSCHEME" -o sourcefile".html"
+    #AA TODO Process substitution will never work like this because it happens before xargs is called!!
+    find "$f" -type f -not -path "*/.*" -print0 | xargs -I {} -0 -o pandoc -f markdown -s "$COLORSCHEME" -o {}".html" <(tomarkdown {})
 
     #AA TODO: Render some index pages
 
   elif [[ -f "$f" ]]; then
 
     OUTPUTDIR=$(pwd)
-    vim "$COLORSCHEME" -c ":argdo set eventignore-=Syntax | if &filetype != \"\" | TOhtml | endif | w $OUTPUTDIR/%:t | q" -c "qa!" "$f"
+    #vim "$COLORSCHEME" -c ":argdo set eventignore-=Syntax | if &filetype != \"\" | TOhtml | endif | w $OUTPUTDIR/%:t | q" -c "qa!" "$f"
+
+    tomarkdown "$f" > "$f.md"
+    pandoc --from markdown -s "$COLORSCHEME" -o "$f.html" "$f.md"
   fi
 done
