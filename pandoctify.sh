@@ -37,7 +37,7 @@ while getopts "hc:" opt
 do
   case "$opt" in
     "h") usage; exit 0 ;;
-    "c") COLORSCHEME="--highlight-style=$OPTARG" ;;
+    "c") COLORSCHEME="$OPTARG" ;;
     "?") usage >&2; exit 1 ;;
     ":") error "Option -$OPTARG requires an argument.";;
   esac
@@ -126,10 +126,15 @@ do
 
   elif [[ -f "$f" ]]; then
 
-    OUTPUTDIR=$(pwd)
-    #vim "$COLORSCHEME" -c ":argdo set eventignore-=Syntax | if &filetype != \"\" | TOhtml | endif | w $OUTPUTDIR/%:t | q" -c "qa!" "$f"
 
-    tomarkdown "$f" > "$f.md"
-    pandoc --from markdown -s "$COLORSCHEME" -o "$f.html" "$f.md"
+    mkfifo markdown
+    tomarkdown "$f" > markdown &
+    if [[ -n "$COLORSCHEME" ]]; then
+      pandoc --from markdown --standalone --highlight-style="$COLORSCHEME" --output="$f.html" markdown
+    else
+      pandoc --from markdown --standalone --output="$f.html" markdown
+    fi
+    rm markdown
+
   fi
 done
